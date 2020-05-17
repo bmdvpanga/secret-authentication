@@ -2,43 +2,46 @@
 
 const mongoose = require("mongoose");
 const schema = require("./models/model.js");
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
 
 module.exports = function(app) {
 
   const Account = schema.getAccount;
 
+  //home page, allows user to log in or register
   app.route("/")
     .get( (req, res) => {
       res.render("home");
     })
     .post( (req, res) => {
       email = req.body.email;
-      password = req.body.password;
-
       //log user in if email exists
       Account.findOne({email: email}, (err, foundUser) => {
-        //handle errors
+      //handle errors
         if(err) {
           console.log(err);
           res.send(err);
         } else {
-
           //if user is found
           if(foundUser) {
-            //if password is correct
-            if(md5(password) === foundUser.password) {
-              res.send("Successful login");
-            } else {
-              res.send("Invalid credentials");
-            }
+            //Use bcrypt to check if our pasword is the same as the hashed password saved in db
+            bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
+              //error check
+              if(err) {
+                res.send(err);
+              } else {
+                if(result) {
+                  res.send("Successful login");
+                } else {
+                  res.send("Invalid credentials");
+                }
+              }
+            });
           } else {
             res.send("user does not exist");
           }
-
         }
       });
-
     });
 
   app.route("/register")
@@ -60,21 +63,24 @@ module.exports = function(app) {
               //Modify for error pop up later
               res.send("User exists");
             } else {
-
-                //new user information
-                const newUser = new Account({
-                  email: req.body.email,
-                  password: md5(req.body.password),
-                  firstName: req.body.firstName,
-                  lastName: req.body.lastName
-                });
-
-                //save user to the database
-                newUser.save( (err) => {
-                  if(!err) {
-                    console.log("User saved in database");
-                    res.send("User created");
-                  }
+                //use bcrypt to salt and encrypt paswords.
+                console.log(Number(process.env.SALT_ROUNDS));
+                console.log("Begin hashing");
+                bcrypt.hash(req.body.password, Number(process.env.SALT_ROUNDS), (err, hash) => {
+                  //new user information
+                  const newUser = new Account({
+                    email: req.body.email,
+                    password: hash,
+                    firstName: req.body.firstName,
+                    lastName: req.body.lastName
+                  });
+                  //save user to the database
+                  newUser.save( (err) => {
+                    if(!err) {
+                      console.log("User saved in database");
+                      res.send("User created");
+                    }
+                  });
                 });
             }
         }
