@@ -1,0 +1,52 @@
+<%- include("partials/header") %>
+
+
+<div class="jumbotron">
+  <h1 class="display-4 centered">Create Your Account!</h1>
+  <p class="lead centered">Get Access to the Latest Secret Information</p>
+  <hr class="my-4">
+
+  <div class="card mx-auto bg-light w-50">
+
+    <div class="card-body">
+      <form class="centered" action="/register" method="POST">
+
+        <div class="container form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" class="form-control" name="firstName">
+        </div>
+
+        <div class="container form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" class="form-control" name="lastName">
+        </div>
+
+        <div class="container form-group">
+          <label for="email">Email</label>
+          <input type="email" class="form-control" name="email">
+        </div>
+
+        <div class="container form-group">
+          <label for="password">Password</label>
+          <input type="password" class="form-control" name="password">
+        </div>
+
+        <div class="container form-group">
+          <label for="password2">Confirm Password</label>
+          <input type="password" class="form-control" name="password2">
+        </div>
+
+        <button type="submit" name="homeButton" value="register" class="btn btn-dark btn-primary btn-md">Register</button>
+        <a href="/" class="btn btn-light btn-primary btn-md">Sign in instead</a>
+
+
+      </form>
+    </div>
+
+  </div>
+</div>
+
+
+
+
+<%- include("partials/footer") %>
