@@ -1,8 +1,6 @@
 //jshint esversion:6
 
 const mongoose = require("mongoose");
-var encrypt = require('mongoose-encryption');
-
 //create account schema
 const accountSchema = new mongoose.Schema({
   email: {
@@ -22,8 +20,6 @@ const accountSchema = new mongoose.Schema({
     type: String
   }
 });
-
-accountSchema.plugin(encrypt, { secret: process.env.SECRET_KEY, encryptedFields: ['password'] });
 
 Account = mongoose.model("Account", accountSchema);
 

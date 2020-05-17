@@ -2,7 +2,7 @@
 
 const mongoose = require("mongoose");
 const schema = require("./models/model.js");
-var encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 
 module.exports = function(app) {
 
@@ -27,7 +27,7 @@ module.exports = function(app) {
           //if user is found
           if(foundUser) {
             //if password is correct
-            if(password === foundUser.password) {
+            if(md5(password) === foundUser.password) {
               res.send("Successful login");
             } else {
               res.send("Invalid credentials");
@@ -35,7 +35,7 @@ module.exports = function(app) {
           } else {
             res.send("user does not exist");
           }
-          
+
         }
       });
 
@@ -64,7 +64,7 @@ module.exports = function(app) {
                 //new user information
                 const newUser = new Account({
                   email: req.body.email,
-                  password: req.body.password,
+                  password: md5(req.body.password),
                   firstName: req.body.firstName,
                   lastName: req.body.lastName
                 });
