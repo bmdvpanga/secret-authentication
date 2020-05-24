@@ -6,3 +6,6 @@ md5
 
 bcrypt
 
+
+User information are saved using Mongo DB Atlas.
+App with database is deployed through Heroku.
