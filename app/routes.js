@@ -3,7 +3,9 @@
 const mongoose = require("mongoose");
 const schema = require("./models/model.js");
 const bcrypt = require('bcrypt');
-
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const session = require('express-session');
 module.exports = function(app) {
 
   const Account = schema.getAccount;
@@ -13,10 +15,12 @@ module.exports = function(app) {
     .get( (req, res) => {
       res.render("home");
     })
+    //User log in
     .post( (req, res) => {
-      email = req.body.email;
+      username = req.body.username;
+      password = req.body.password;
       //log user in if email exists
-      Account.findOne({email: email}, (err, foundUser) => {
+      Account.findOne({username: username}, (err, foundUser) => {
       //handle errors
         if(err) {
           console.log(err);
@@ -24,20 +28,29 @@ module.exports = function(app) {
         } else {
           //if user is found
           if(foundUser) {
-            //Use bcrypt to check if our pasword is the same as the hashed password saved in db
-            bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
-              //error check
-              if(err) {
-                res.send(err);
-              } else {
-                if(result) {
-                  res.send("Successful login");
+            console.log(req);
+            console.log(foundUser);
+            const user = new Account({
+                    username: req.body.username,
+                    firstName: req.body.firstName,
+                    lastName: req.body.lastName
+            });
+            
+            req.logIn(user, (err) => {
+                if(err) {
+                  console.log(err);
+                  res.redirect("/");
                 } else {
-                  res.send("Invalid credentials");
+                  console.log(req);
+                  passport.authenticate("local")(req, res, () => {
+                    //if authentication is successful, redirect to secrets route
+                    res.redirect("/secrets");
+                  });
                 }
-              }
             });
           } else {
+            console.log(req);
+            console.log(foundUser);
             res.send("user does not exist");
           }
         }
@@ -51,8 +64,7 @@ module.exports = function(app) {
     .post((req,res)=> {
 
       //check if user email already exists in database, if not, create user
-      Account.findOne( { email: req.body.email}, (err, foundUser) => {
-
+      Account.findOne( { username: req.body.username}, (err, foundUser) => {
         //error handling
         if(err) {
           console.log(err);
@@ -63,30 +75,32 @@ module.exports = function(app) {
               //Modify for error pop up later
               res.send("User exists");
             } else {
-                //use bcrypt to salt and encrypt paswords.
-                console.log(Number(process.env.SALT_ROUNDS));
-                console.log("Begin hashing");
-                bcrypt.hash(req.body.password, Number(process.env.SALT_ROUNDS), (err, hash) => {
-                  //new user information
-                  const newUser = new Account({
-                    email: req.body.email,
-                    password: hash,
-                    firstName: req.body.firstName,
-                    lastName: req.body.lastName
-                  });
-                  //save user to the database
-                  newUser.save( (err) => {
-                    if(!err) {
-                      console.log("User saved in database");
-                      res.send("User created");
-                    }
-                  });
-                });
+                Account.register( {username: req.body.username,firstName: req.body.firstName,lastName: req.body.lastName }, req.body.password, (err, user) => {
+                  if(err) {
+                    console.log(err);
+                    res.redirect("/register");
+                  } else {
+                    passport.authenticate("local")(req, res, () => {
+                      //if authentication is successful, redirect to secrets route
+                      res.redirect("/secrets");
+                    });
+                  }
+              });
             }
         }
       });
-
     });
 
+  app.route("/secrets")
+    .get((req,res) => {
+      //if user is authenticated or already logged in, then secret page is rendered
+      if ( req.isAuthenticated() ) {
+        console.log("Authenticated");
+        res.render("secrets");
+      } else {
+        console.log("Not authenticated");
+        res.redirect("/");
+      }
 
+    });
 };

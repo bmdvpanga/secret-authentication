@@ -6,7 +6,18 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const app = express();
 const port = process.env.PORT || 3000;
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const session = require('express-session');
 
+app.use(session({
+  secret: process.env.SECRET_KEY,
+  resave: false,
+  saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 //connect to mongoose db
@@ -16,6 +27,7 @@ mongoose.connect(process.env.MONGO_CONNECTION_STRING, {
   useFindAndModify: false
 });
 
+mongoose.set("useCreateIndex", true);
 
 //support parsing of application/x-www-form-urlencoded post data
 app.use(bodyParser.urlencoded({

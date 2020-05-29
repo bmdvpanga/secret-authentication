@@ -1,14 +1,15 @@
 //jshint esversion:6
 
 const mongoose = require("mongoose");
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const session = require('express-session');
+
+
 //create account schema
 const accountSchema = new mongoose.Schema({
-  email: {
+  username: {
     required: [true, "Missing email"],
-    type: String
-  },
-  password: {
-    required: [true, "Missing password"],
     type: String
   },
   firstName: {
@@ -21,6 +22,15 @@ const accountSchema = new mongoose.Schema({
   }
 });
 
-Account = mongoose.model("Account", accountSchema);
+// Add plug in for passport local mongoose
+accountSchema.plugin(passportLocalMongoose);
+
+const Account = mongoose.model("Account", accountSchema);
+
+//create strategy sets up passport local
+passport.use(Account.createStrategy());
+
+passport.serializeUser(Account.serializeUser());
+passport.deserializeUser(Account.deserializeUser());
 
 exports.getAccount = Account;
