@@ -28,20 +28,16 @@ module.exports = function(app) {
         } else {
           //if user is found
           if(foundUser) {
-            console.log(req);
-            console.log(foundUser);
             const user = new Account({
                     username: req.body.username,
                     firstName: req.body.firstName,
                     lastName: req.body.lastName
             });
-            
             req.logIn(user, (err) => {
                 if(err) {
                   console.log(err);
                   res.redirect("/");
                 } else {
-                  console.log(req);
                   passport.authenticate("local")(req, res, () => {
                     //if authentication is successful, redirect to secrets route
                     res.redirect("/secrets");
@@ -63,32 +59,36 @@ module.exports = function(app) {
     })
     .post((req,res)=> {
 
-      //check if user email already exists in database, if not, create user
-      Account.findOne( { username: req.body.username}, (err, foundUser) => {
-        //error handling
-        if(err) {
-          console.log(err);
-          res.send(err);
-        } else {
-          //if user is already in database
-            if(foundUser) {
-              //Modify for error pop up later
-              res.send("User exists");
-            } else {
-                Account.register( {username: req.body.username,firstName: req.body.firstName,lastName: req.body.lastName }, req.body.password, (err, user) => {
-                  if(err) {
-                    console.log(err);
-                    res.redirect("/register");
-                  } else {
-                    passport.authenticate("local")(req, res, () => {
-                      //if authentication is successful, redirect to secrets route
-                      res.redirect("/secrets");
-                    });
-                  }
-              });
-            }
-        }
-      });
+      if(req.body.password !== req.body.password2) {
+        console.log("Passwords are not matching");
+        res.redirect("/register");
+      } else {
+        Account.findOne( { username: req.body.username}, (err, foundUser) => {
+          //error handling
+          if(err) {
+            console.log(err);
+            res.send(err);
+          } else {
+            //if user is already in database
+              if(foundUser) {
+                //Modify for error pop up later
+                res.send("User exists");
+              } else {
+                  Account.register( {username: req.body.username,firstName: req.body.firstName,lastName: req.body.lastName }, req.body.password, (err, user) => {
+                    if(err) {
+                      console.log(err);
+                      res.redirect("/register");
+                    } else {
+                      passport.authenticate("local")(req, res, () => {
+                        //if authentication is successful, redirect to secrets route
+                        res.redirect("/secrets");
+                      });
+                    }
+                });
+              }
+          }
+        });
+      }
     });
 
   app.route("/secrets")
