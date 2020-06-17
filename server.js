@@ -9,6 +9,7 @@ const port = process.env.PORT || 3000;
 const passport = require('passport');
 const passportLocalMongoose = require('passport-local-mongoose');
 const session = require('express-session');
+const flash = require('connect-flash');
 
 app.use(session({
   secret: process.env.SECRET_KEY,
@@ -18,6 +19,15 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(flash());
+
+
+//GLobal variables
+app.use((req,res,next) => {
+  res.locals.success_msg = req.flash("success_msg");
+  res.locals.error_msg = req.flash("error_msg");
+  next();
+});
 
 
 //connect to mongoose db
@@ -45,4 +55,5 @@ app.listen(port, () => {
   console.log("Listening to port " + port);
 });
 
+app.use(flash());
 require('./app/routes.js')(app);
