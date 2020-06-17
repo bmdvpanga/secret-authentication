@@ -3,90 +3,139 @@
 const mongoose = require("mongoose");
 const schema = require("./models/model.js");
 const bcrypt = require('bcrypt');
-
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const session = require('express-session');
+// const flash = require('connect-flash');
 module.exports = function(app) {
 
   const Account = schema.getAccount;
-
+  const Secret = schema.getSecret;
   //home page, allows user to log in or register
   app.route("/")
-    .get( (req, res) => {
+    .get((req, res) => {
       res.render("home");
     })
-    .post( (req, res) => {
-      email = req.body.email;
+
+    //User log in
+    .post((req, res) => {
+      username = req.body.username;
+      password = req.body.password;
       //log user in if email exists
-      Account.findOne({email: email}, (err, foundUser) => {
-      //handle errors
-        if(err) {
-          console.log(err);
-          res.send(err);
-        } else {
-          //if user is found
-          if(foundUser) {
-            //Use bcrypt to check if our pasword is the same as the hashed password saved in db
-            bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
-              //error check
-              if(err) {
-                res.send(err);
-              } else {
-                if(result) {
-                  res.send("Successful login");
-                } else {
-                  res.send("Invalid credentials");
-                }
-              }
-            });
-          } else {
-            res.send("user does not exist");
-          }
-        }
+      const user = new Account({
+        username: req.body.username,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName
       });
+
+      passport.authenticate('local', function(err, user, info) {
+        if (err) {
+          req.flash("error_msg", err);
+          console.log(err);
+          return res.redirect("/");
+        }
+        if (info) {
+          console.log(err);
+          req.flash("error_msg", info.message);
+          console.log(typeof info);
+          return res.redirect('/');
+        }
+        req.logIn(user, function(err) {
+          if (err) {
+            req.flash("error_msg", err);
+            console.log(err);
+            console.log(info);
+            res.redirect("/");
+           }
+          return res.redirect('/secrets');
+        });
+      })(req, res);
+
     });
 
   app.route("/register")
-    .get((req,res)=> {
+    .get((req, res) => {
       res.render("register");
     })
-    .post((req,res)=> {
+    .post((req, res) => {
+      const {
+        username,
+        firstName,
+        lastName,
+        password,
+        password2
+      } = req.body;
+      let errors = [];
 
-      //check if user email already exists in database, if not, create user
-      Account.findOne( { email: req.body.email}, (err, foundUser) => {
+      //error message handling
+      //if any of the fields are blank, populate error field
+      if (!username || !firstName || !lastName || !password || !password2) {
+        errors.push({
+          msg: "Please fill in all of the fields."
+        });
+      }
 
-        //error handling
-        if(err) {
-          console.log(err);
-          res.send(err);
-        } else {
-          //if user is already in database
-            if(foundUser) {
-              //Modify for error pop up later
-              res.send("User exists");
-            } else {
-                //use bcrypt to salt and encrypt paswords.
-                console.log(Number(process.env.SALT_ROUNDS));
-                console.log("Begin hashing");
-                bcrypt.hash(req.body.password, Number(process.env.SALT_ROUNDS), (err, hash) => {
-                  //new user information
-                  const newUser = new Account({
-                    email: req.body.email,
-                    password: hash,
-                    firstName: req.body.firstName,
-                    lastName: req.body.lastName
-                  });
-                  //save user to the database
-                  newUser.save( (err) => {
-                    if(!err) {
-                      console.log("User saved in database");
-                      res.send("User created");
-                    }
-                  });
-                });
-            }
-        }
-      });
+      if (req.body.password !== req.body.password2) {
+        errors.push({
+          msg: "Passwords are not matching"
+        });
+      }
 
+      //if there are errors, then we
+      if(errors.length > 0) {
+        console.log(errors);
+        res.render("register", {errors, username, firstName, lastName, password, password2});
+      } else {
+        Account.register({
+          username: req.body.username,
+          firstName: req.body.firstName,
+          lastName: req.body.lastName
+        }, req.body.password, (err, user,passwordErr) => {
+          if (err) {
+            errors.push({
+              msg: err.message
+            });
+            res.render("register", {errors, username, firstName, lastName, password, password2});
+          } else {
+              req.flash("success_msg", "You have successfully registered. Please log in.");
+              res.redirect("/");
+          }
+        });
+      }
     });
 
+  app.route("/secrets")
+    .get((req, res) => {
+      //if user is authenticated or already logged in, then secret-auth page is rendered, otherwise, they are taken to regular secrets passportLocalMongoose
+      //regular secrets page has no submit button and can only view users
+      Secret.find( {}, (err, foundSecrets) => {
+            if (req.isAuthenticated()) {
+              res.render("secrets-auth", {userSecrets: foundSecrets, firstName: req.user.firstName, lastName: req.user.lastName});
+            } else {
+              res.render("secrets", {userSecrets: foundSecrets});
+            }
+      });
+    })
+    //When user posts a secret on the page, add the secret to the user's database
+    .post ((req,res) => {
+      //create a new document that holds the secret submitted by user
+      submittedSecret = new Secret( {
+        secret: req.body.secret
+      });
 
+      submittedSecret.save( (err) => {
+        if(err) {
+          console.log(err);
+        } else {
+          res.redirect("/secrets");
+        }
+      });
+    });
+
+  app.route("/logout")
+    .get((req, res) => {
+      req.logout();
+      req.flash("success_msg", "You have successfully logged out.");
+      res.redirect("/");
+    });
 };

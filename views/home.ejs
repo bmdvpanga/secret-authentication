@@ -7,12 +7,13 @@
   <hr class="my-4">
 
   <div class="card mx-auto bg-light w-50">
+
     <div class="card-body">
       <form class="centered" action="/" method="POST">
-
+        <%- include("partials/messages") %>
         <div class="container form-group">
-          <label for="email">Email</label>
-          <input type="email" class="form-control" name="email">
+          <label for="username">Email</label>
+          <input type="email" class="form-control" name="username">
         </div>
 
         <div class="container form-group">
